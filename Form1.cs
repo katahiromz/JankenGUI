@@ -7,13 +7,28 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Media;
 
 namespace JankenGUI
 {
     public partial class Form1 : Form
     {
         bool start = false;
-        bool aiko = false;
+
+        SoundPlayer gu_player = new SoundPlayer(Properties.Resources.gu1);
+        SoundPlayer choki_player = new SoundPlayer(Properties.Resources.choki1);
+        SoundPlayer pa_player = new SoundPlayer(Properties.Resources.pa1);
+        SoundPlayer kachi_player = new SoundPlayer(Properties.Resources.kachi);
+        SoundPlayer make_player = new SoundPlayer(Properties.Resources.make);
+        SoundPlayer aiko_player = new SoundPlayer(Properties.Resources.aikodesho);
+        SoundPlayer janken_player = new SoundPlayer(Properties.Resources.jankenpon);
+
+        enum HanteiKekka {
+            HANTEI_KACHI,
+            HANTEI_MAKE,
+            HANTEI_AIKO
+        };
+
         public Form1()
         {
             InitializeComponent();
@@ -21,6 +36,34 @@ namespace JankenGUI
 
         void show_hand(int player_hand)
         {
+            janken_player.Stop();
+            aiko_player.Stop();
+            button4.Visible = false;
+            if (!start)
+            {
+                //メッセージボックスを表示する
+                MessageBox.Show("じゃんけんぽんを押してね",
+                    "エラー",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+                return;
+            }
+            switch (player_hand)
+            {
+                case 1:
+                    pictureBox2.Image = Properties.Resources.gu;
+                    gu_player.PlaySync();
+                    break;
+                case 2:
+                    pictureBox2.Image = Properties.Resources.choki;
+                    choki_player.PlaySync();
+                    break;
+                case 3:
+                    pictureBox2.Image = Properties.Resources.pa;
+                    pa_player.PlaySync();
+                    break;
+            }
+
             int comp_hand = get_comp_hand();
             switch (comp_hand)
             {
@@ -34,29 +77,36 @@ namespace JankenGUI
                     pictureBox1.Image = Properties.Resources.pa;
                     break;
             }
+            bool aiko = false;
             switch (hantei(player_hand, comp_hand))
             {
-                case 0:
+                case HanteiKekka.HANTEI_KACHI:
                     label3.Text = "あなたの勝ちです";
-                    var player = new System.Media.SoundPlayer(Properties.Resources.kachi);
-                    player.Play();
-                    aiko = false;
+                    kachi_player.Play();
                     break;
-                case 1:
+                case HanteiKekka.HANTEI_MAKE:
                     label3.Text = "あなたの負けです";
-                    var player2 = new System.Media.SoundPlayer(Properties.Resources.make);
-                    player2.Play();
-                    aiko = false;
+                    make_player.Play();
                     break;
-                case 2:
+                case HanteiKekka.HANTEI_AIKO:
                     label3.Text = "あいこ";
-                    var player3 = new System.Media.SoundPlayer(Properties.Resources.aikodesho);
-                    player3.Play();
                     aiko = true;
                     break;
             }
-            //スタートをリセット
-            if (!aiko) start = false;
+            if (aiko)
+            {
+                aiko_player.Play();
+            }
+            else
+            {
+                //スタートをリセット
+                start = false;
+                button1.Visible = false;
+                button2.Visible = false;
+                button3.Visible = false;
+                button4.Visible = true;
+            }
+
         }
 
         int get_comp_hand()
@@ -65,105 +115,57 @@ namespace JankenGUI
             return cRnd.Next(1, 4);       // １以上４未満の乱数を取得
         }
 
-        int hantei(int player_hand, int comp_hand)
+        HanteiKekka hantei(int player_hand, int comp_hand)
         {
-            int iHantei = 0;
-            if (player_hand == 1)
+            if (player_hand == comp_hand)
             {
-                if (comp_hand == 1) iHantei = 2;
-                else if (comp_hand == 2) iHantei = 0;
-                else if (comp_hand == 3) iHantei = 1;
+                return HanteiKekka.HANTEI_AIKO;
             }
-            if (player_hand == 2)
+            else if ((3 + player_hand - comp_hand) % 3 == 1)
             {
-                if (comp_hand == 1) iHantei = 1;
-                else if (comp_hand == 2) iHantei = 2;
-                else if (comp_hand == 3) iHantei = 0;
+                return HanteiKekka.HANTEI_MAKE;
             }
-            if (player_hand == 3)
+            else
             {
-                if (comp_hand == 1) iHantei = 0;
-                else if (comp_hand == 2) iHantei = 1;
-                else if (comp_hand == 3) iHantei = 2;
+                return HanteiKekka.HANTEI_KACHI;
             }
-            return iHantei;
         }
 
         private void button1_Click(object sender, EventArgs e)
         {
-            //gu
-            if (start == false)
-            {
-                //メッセージボックスを表示する
-                MessageBox.Show("じゃんけんぽんを押してね",
-                    "エラー",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error);
-            }
-            else
-            {
-                pictureBox2.Image = Properties.Resources.gu;
-                var player = new System.Media.SoundPlayer(Properties.Resources.gu1);
-                player.PlaySync();
-                show_hand(1);
-            }
+            show_hand(1);
         }
 
         private void Form1_Load(object sender, EventArgs e)
         {
+            button1.Visible = false;
+            button2.Visible = false;
+            button3.Visible = false;
+            button4.Visible = true;
         }
 
         private void button4_Click(object sender, EventArgs e)
         {
             //start
             start = true;
-            var player = new System.Media.SoundPlayer(Properties.Resources.jankenpon);
-            player.PlaySync();
+            button1.Visible = true;
+            button2.Visible = true;
+            button3.Visible = true;
+            button4.Visible = false;
+            label3.Text = "";
+            pictureBox1.Image = null;
+            pictureBox2.Image = null;
+            janken_player.Play();
         }
 
         private void button2_Click(object sender, EventArgs e)
         {
-            //choki
-            if (start == false)
-            {
-                //メッセージボックスを表示する
-                MessageBox.Show("じゃんけんぽんを押してね",
-                    "エラー",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error);
-            }
-            else
-            {
-                pictureBox2.Image = Properties.Resources.choki;
-                var player = new System.Media.SoundPlayer(Properties.Resources.choki1);
-                player.PlaySync();
-                show_hand(2);
-            }
+            show_hand(2);
         }
 
         private void button3_Click(object sender, EventArgs e)
         {
-            //pa
-            if (start == false)
-            {
-                //メッセージボックスを表示する
-                MessageBox.Show("じゃんけんぽんを押してね",
-                    "エラー",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error);
-            }
-            else
-            {
-                pictureBox2.Image = Properties.Resources.pa;
-                var player = new System.Media.SoundPlayer(Properties.Resources.pa1);
-                player.PlaySync();
-                show_hand(3);
-            }
-        }
-
-        private void label3_Click(object sender, EventArgs e)
-        {
-
+            show_hand(3);
         }
     }
 }
